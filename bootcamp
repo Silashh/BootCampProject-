@@ -1,0 +1,180 @@
+1. Katmanlar
+Core: Temel sınıflar ve arabirimler.
+
+Entities: Veri modelleri (User, Instructor, Applicant, Employee).
+
+Repositories: Veri erişim işlemleri (interface ve implemantasyon).
+
+Business: İş kuralları ve servisler.
+
+WebAPI: Uygulamanın dış dünya ile iletişim katmanı (Controller'lar vs.)
+
+Entities Katmanı
+
+
+namespace Entities
+{
+    public class User
+    {
+        public int Id { get; set; }
+        public string Username { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public DateTime DateOfBirth { get; set; }
+        public string NationalIdentity { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+}
+
+namespace Entities
+{
+    public class Instructor : User
+    {
+        public string CompanyName { get; set; }
+    }
+}
+
+
+namespace Entities
+{
+    public class Applicant : User
+    {
+        public string About { get; set; }
+    }
+}
+
+namespace Entities
+{
+    public class Employee : User
+    {
+        public string Position { get; set; }
+    }
+}
+ Repositories Katmanı
+
+
+using Entities;
+
+namespace Repositories
+{
+    public interface IUserRepository : IAsyncRepository<User>
+    {
+    }
+}
+
+
+using Entities;
+
+namespace Repositories
+{
+    public interface IInstructorRepository : IAsyncRepository<Instructor>
+    {
+    }
+}
+
+
+using Entities;
+
+namespace Repositories
+{
+    public interface IApplicantRepository : IAsyncRepository<Applicant>
+    {
+    }
+}
+
+
+using Entities;
+
+namespace Repositories
+{
+    public interface IEmployeeRepository : IAsyncRepository<Employee>
+    {
+    }
+}
+Core Katmanı: Generic Repository
+
+
+namespace Core
+{
+    public interface IRepository<T> where T : class
+    {
+        T GetById(int id);
+        IEnumerable<T> GetAll();
+        void Add(T entity);
+        void Update(T entity);
+        void Delete(T entity);
+    }
+}
+ Core Katmanı: Asenkron Yapı
+
+using System.Threading.Tasks;
+
+namespace Core
+{
+    public interface IAsyncRepository<T> where T : class
+    {
+        Task<T> GetByIdAsync(int id);
+        Task<IEnumerable<T>> GetAllAsync();
+        Task AddAsync(T entity);
+        Task UpdateAsync(T entity);
+        Task DeleteAsync(T entity);
+    }
+}
+
+EfRepositoryBase (Implementasyon)
+
+
+using Microsoft.EntityFrameworkCore;
+using Core;
+
+namespace Repositories
+{
+    public class EfRepositoryBase<T> : IAsyncRepository<T> where T : class
+    {
+        protected readonly DbContext _context;
+
+        public EfRepositoryBase(DbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<T> GetByIdAsync(int id)
+        {
+            return await _context.Set<T>().FindAsync(id);
+        }
+
+        public async Task<IEnumerable<T>> GetAllAsync()
+        {
+            return await _context.Set<T>().ToListAsync();
+        }
+
+        public async Task AddAsync(T entity)
+        {
+            await _context.Set<T>().AddAsync(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(T entity)
+        {
+            _context.Set<T>().Update(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteAsync(T entity)
+        {
+            _context.Set<T>().Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+    }
+}
+
+    Request-Response Pattern Nedir?
+Request-Response Pattern, istemci (client) ile sunucu (server) arasında belirli bir formatta veri alışverişi yapılan bir yazılım tasarımıdır.
+
+Request: Client’ın yaptığı isteği temsil eder. Örneğin: "Bana kullanıcı verilerini getir."
+
+Response: Server’ın döndüğü cevaptır. Örneğin: "İşte kullanıcıların listesi."
+
+Bu pattern, özellikle API’lerde kullanılır.
+Controller katmanında DTO (Data Transfer Object) kullanarak gelen veriyi işleriz, iş kuralları Business katmanında çalışır, veri erişim işlemleri Repository katmanında yapılır
